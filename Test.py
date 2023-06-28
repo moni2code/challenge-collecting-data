@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from bs4 import BeautifulSoup
 import re
 import json
@@ -19,3 +20,17 @@ data_dict = json.loads(data)
 # For example, printing the property features and values
 for key, value in data_dict.items():
     print(f"Feature: {key}, Value: {value}")
+=======
+import requests, re, json
+from bs4 import BeautifulSoup
+from pathlib import Path
+root_url = "https://www.immoweb.be"
+web_url = "https://www.immoweb.be/en/classified/mixed-use-building/for-sale/gent/9000/10655537"
+cookie = requests.get(root_url).cookies
+resp = BeautifulSoup(requests.get(root_url, cookies=cookie).text)
+print(resp.prettify())
+if resp == "<Response [200]>":
+    print ('OK!')
+else:
+    print ('Boo!')
+>>>>>>> fcf6f97b1b4fd28c3629d7914d98b53a7d8979f1
