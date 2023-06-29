@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import requests
 import re
 from bs4 import BeautifulSoup
@@ -47,5 +46,3 @@ list_key_values =[
     "hasgarden", "surface", "facadeCount", "hasSwimmingPool","condition"]
 key_values = extract_nested_values(house_dict, list_key_values)
 print(key_values)
-
->>>>>>> fcf6f97b1b4fd28c3629d7914d98b53a7d8979f1
