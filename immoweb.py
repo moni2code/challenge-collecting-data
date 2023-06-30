@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 from bs4 import BeautifulSoup
 import time
-import threading
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
