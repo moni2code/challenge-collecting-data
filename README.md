@@ -29,4 +29,4 @@ This project is done by Sam Veldeman,Wouter Daneels and Monisha Hitang learners 
 This project is completed in about 5 days. This project is done during 26 june - 30 june, 2023.
 
 ### Personal situation
-This project is done as a part of group project of AI Bootcamp course. As learners of “AI Bootcamp” course at Becode.org, we were given this project to do as a part of our coursework. This project was very helpful for us to use the concepts we have learned such as Python programming language, web-scraping, file-handeling, regex, concurrency etc. 
+This project is done as a part of group project of AI Bootcamp course. As learners of “AI Bootcamp” course at Becode.org, we were given this project to do as a part of our coursework. This project was very helpful for us to use the concepts we have learned such as Python programming  language, web-scraping, file-handeling, regex, concurrency etc. 
