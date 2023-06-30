@@ -1,4 +1,6 @@
 **/.venv/**
 **/webdrivers/**
 **/geckodriver.log
-
+/project.ipynb
+/test.ipynb
+/testing_code.ipynb
