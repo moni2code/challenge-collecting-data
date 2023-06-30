@@ -134,6 +134,6 @@ house_details_df = pd.DataFrame(house_details)
 house_details_df.replace({np.nan: 0, None: 0}, inplace=True)
 house_details_df = house_details_df.astype(int, errors='ignore')
 
-house_details_df.to_csv("data/house_details_1.csv", index=False)
+house_details_df.to_csv("data/house_details.csv", index=False)
 print(f"Total records: {len(house_details)}")
 print(house_details_df)
