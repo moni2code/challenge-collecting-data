@@ -61,8 +61,7 @@ def get_urls(num_pages):
     return list_all_urls
 
 
-num_pages = 170
-list_of_urls = get_urls(num_pages)
+
 
 selected_values = [
     ("id", "id"),
@@ -124,8 +123,9 @@ def process_url(url):
         house_details.append(filtered_house_dict)
     else:
         time.sleep(3)
-
-
+# Prompt for the number of pages to scrape
+num_pages = int(input("Enter the number of pages to scrape: "))
+list_of_urls = get_urls(num_pages)
 max_threads = 30
 with ThreadPoolExecutor(max_workers=max_threads) as executor:
     executor.map(process_url, list_of_urls)
