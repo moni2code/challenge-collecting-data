@@ -1,8 +1,4 @@
-/.venv/**
-/webdrivers/**
-/geckodriver.log
-/Testerbook.ipynb
-/Test.py
-/Tester.ipynb
-/project.ipynb
+**/.venv/**
+**/webdrivers/**
+**/geckodriver.log
 
