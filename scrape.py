@@ -133,7 +133,7 @@ with ThreadPoolExecutor(max_workers=max_threads) as executor:
 house_details_df = pd.DataFrame(house_details)
 house_details_df.replace({np.nan: 0, None: 0}, inplace=True)
 house_details_df = house_details_df.astype(int, errors='ignore')
-
+os.makedirs("data", exist_ok=True)
 house_details_df.to_csv("data/house_details.csv", index=False)
 print(f"Total records: {len(house_details)}")
 print(house_details_df)
