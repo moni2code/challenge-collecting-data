@@ -50,7 +50,8 @@ def get_urls(num_pages, session):
     """
     list_all_urls = []
     for page in range(1, num_pages + 1):
-        root_url = f"https://www.immoweb.be/en/search/house/for-sale?countries=BE&page={page}&orderBy=relevance"
+        #root_url = f"https://www.immoweb.be/en/search/house/for-sale?countries=BE&page={page}&orderBy=relevance"
+        root_url = f"https://www.immoweb.be/en/search/house-and-apartment/for-sale?countries=BE&page=1&orderBy=relevance"
         req = session.get(root_url)  # Send GET request to the root URL
         content = req.content  # Get the content of the response
         soup = BeautifulSoup(content, "html.parser")  # Create a BeautifulSoup object for parsing HTML
