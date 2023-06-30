@@ -1,4 +1,5 @@
 **/.venv/**
 **/webdrivers/**
 **/geckodriver.log
+myenv1/
 
