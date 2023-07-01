@@ -7,7 +7,12 @@ import time
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
+# Global variables
+house_details = []
+scraped_urls = set()
+raw_data = []
 
 def get_property(url, session):
     """
@@ -30,11 +35,10 @@ def get_property(url, session):
         if start_index != -1 and end_index != -1:
             json_data = html_content[start_index:end_index]
             house_dict = json.loads(json_data)
-            return house_dict
+            return house_dict, json_data
     except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
         print(f"Error occurred during scraping: {e}")
-    return None
-
+    return None, None
 
 def get_urls(num_pages):
     """
@@ -48,20 +52,18 @@ def get_urls(num_pages):
     """
     list_all_urls = []
     for i in range(1, num_pages + 1):
-        root_url = f"https://www.immoweb.be/en/search/house/for-sale?countries=BE&page={i}&orderBy=relevance"
+        root_url = f"https://www.immoweb.be/en/search/house-and-apartment/for-sale?countries=BE&page={i}&orderBy=relevance"
         req = requests.get(root_url)
         content = req.content
         soup = BeautifulSoup(content, "html.parser")
         if req.status_code == 200:
+            # Find all property URLs on the page and add them to the list
             list_all_urls.extend(tag.get("href") for tag in soup.find_all("a", attrs={"class": "card__title-link"}))
         else:
             print("Page not found")
             break
     print(f"Number of houses: {len(list_all_urls)}")
     return list_all_urls
-
-
-
 
 selected_values = [
     ("id", "id"),
@@ -83,10 +85,76 @@ selected_values = [
     ("condition", "property.building.condition")
 ]
 
-house_details = []
-if os.path.isfile("data/house_details.csv"):
-    os.remove("data/house_details.csv")
-    print("Existing data file deleted.")
+def save_raw_data(version):
+    """
+    Saves the raw scraped data to a CSV file.
+
+    Args:
+        version (int): The version number for the CSV file.
+    """
+    filename = f"data/scrapes/scrape_v{version}.csv"
+    raw_data_df = pd.DataFrame(raw_data)
+    os.makedirs("data/scrapes", exist_ok=True)
+    raw_data_df.to_csv(filename, index=False)
+    print(f"Raw data saved to {filename}")
+
+def save_data(version):
+    """
+    Saves the scraped data to a CSV file.
+
+    Args:
+        version (int): The version number for the CSV file.
+    """
+    filename = f"data/filtered_data/house_details_v{version}.csv"
+    house_details_df = pd.DataFrame(house_details)
+    if not house_details_df.empty:
+        house_details_df.replace({np.nan: 0, None: 0}, inplace=True)
+        house_details_df = house_details_df.astype(int, errors='ignore')
+        os.makedirs("data/filtered_data", exist_ok=True)
+        house_details_df.to_csv(filename, index=False)
+        print(f"Data saved to {filename}")
+    else:
+        print("No data to save.")
+
+def get_latest_version(file_prefix):
+    """
+    Retrieves the latest version number for the given file prefix.
+
+    Args:
+        file_prefix (str): The prefix of the CSV file.
+
+    Returns:
+        int: The latest version number.
+    """
+    version = 0  # Initialize version as 0
+    for filename in os.listdir("data/filtered_data"):
+        if filename.startswith(file_prefix) and filename.endswith(".csv"):
+            match = re.search(r"v(\d+)", filename)
+            if match:
+                file_version = int(match.group(1))
+                version = max(version, file_version)  # Update version if higher version found
+    return version
+
+def load_data():
+    """
+    Loads previously scraped data from a CSV file.
+
+    Returns:
+        int: The version number of the CSV file.
+    """
+    latest_version = get_latest_version("house_details_v")
+    version = latest_version + 1 if latest_version > 0 else 1
+    filename = f"data/filtered_data/house_details_v{version}.csv"
+    if latest_version > 0:
+        print(f"Existing data found for version {latest_version}.")
+    else:
+        print(f"No existing data found for version {latest_version}.")
+        print(f"Creating a new version {version} CSV file.")
+        os.makedirs("data/filtered_data", exist_ok=True)
+        with open(filename, 'w') as file:
+            file.write('')  # Create an empty file
+
+    return version
 
 
 def process_url(url):
@@ -98,9 +166,15 @@ def process_url(url):
     """
     session = requests.Session()
     if any(record.get("id") == url for record in house_details):
+        # Skip if URL already processed
         print(f"Skipping URL: {url}")
         return
-    house_dict = get_property(url, session)
+    house_dict, raw_json_data = get_property(url, session)
+    global scraped_urls
+    if url in scraped_urls:
+        # Skip if URL already processed
+        print(f"Skipping URL: {url}")
+        return
     if house_dict:
         filtered_house_dict = {}
         for new_key, old_key in selected_values:
@@ -121,19 +195,49 @@ def process_url(url):
         if id_match:
             filtered_house_dict["id"] = int(id_match.group(1))
         house_details.append(filtered_house_dict)
+        raw_data.append({"url": url, "json_data": raw_json_data})
     else:
+        # Sleep for 3 seconds if property details couldn't be fetched
         time.sleep(3)
+
 # Prompt for the number of pages to scrape
 num_pages = int(input("Enter the number of pages to scrape: "))
-list_of_urls = get_urls(num_pages)
-max_threads = 30
-with ThreadPoolExecutor(max_workers=max_threads) as executor:
-    executor.map(process_url, list_of_urls)
 
-house_details_df = pd.DataFrame(house_details)
-house_details_df.replace({np.nan: 0, None: 0}, inplace=True)
-house_details_df = house_details_df.astype(int, errors='ignore')
-os.makedirs("data", exist_ok=True)
-house_details_df.to_csv("data/house_details.csv", index=False)
-print(f"Total records: {len(house_details)}")
-print(house_details_df)
+# Prompt for the number of workers
+num_workers_input = input("Enter the number of workers (default is 10): ")
+num_workers = int(num_workers_input) if num_workers_input else 10
+
+# Check if previous scraped data exists
+version = load_data()  # Load previously scraped data
+list_of_urls = get_urls(num_pages)
+
+max_threads = min(num_workers, len(list_of_urls))
+counter = 0
+counter_lock = Lock()
+
+def process_url_wrapper(url):
+    """
+    Wrapper function for processing a property URL.
+
+    Args:
+        url (str): The URL of the property.
+    """
+    global counter
+    with counter_lock:
+        counter += 1
+        print(f"URLs processed: {counter}", end='\r', flush=True)
+        # Use end='\r' and flush=True to stay on the same line
+
+    process_url(url)
+
+with ThreadPoolExecutor(max_workers=max_threads) as executor:
+    for _ in executor.map(process_url_wrapper, list_of_urls):
+        pass
+
+# Save the final data and raw data
+save_data(version)
+save_raw_data(version)
+filename = f"data/filtered_data/house_details_v{version}.csv"
+df = pd.read_csv(filename)
+print(f"\nTotal records: {len(house_details)}")
+print(df)
