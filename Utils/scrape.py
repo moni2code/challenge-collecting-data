@@ -14,6 +14,9 @@ house_details = []
 scraped_urls = set()
 raw_data = []
 
+#Start a Sesson as session
+session = requests.Session()
+
 def get_property(url, session):
     """
     Fetches the property details from the given URL.
@@ -40,7 +43,7 @@ def get_property(url, session):
         print(f"Error occurred during scraping: {e}")
     return None, None
 
-def get_urls(num_pages):
+def get_urls(num_pages, session):
     """
     Retrieves the list of property URLs to scrape.
 
@@ -53,7 +56,7 @@ def get_urls(num_pages):
     list_all_urls = []
     for i in range(1, num_pages + 1):
         root_url = f"https://www.immoweb.be/en/search/house-and-apartment/for-sale?countries=BE&page={i}&orderBy=relevance"
-        req = requests.get(root_url)
+        req = session.get(root_url)
         content = req.content
         soup = BeautifulSoup(content, "html.parser")
         if req.status_code == 200:
@@ -157,14 +160,14 @@ def load_data():
     return version
 
 
-def process_url(url):
+def process_url(url, session):
     """
     Processes a property URL and extracts the relevant details.
 
     Args:
         url (str): The URL of the property.
     """
-    session = requests.Session()
+    
     if any(record.get("id") == url for record in house_details):
         # Skip if URL already processed
         print(f"Skipping URL: {url}")
@@ -209,7 +212,7 @@ num_workers = int(num_workers_input) if num_workers_input else 10
 
 # Check if previous scraped data exists
 version = load_data()  # Load previously scraped data
-list_of_urls = get_urls(num_pages)
+list_of_urls = get_urls(num_pages, session)
 
 max_threads = min(num_workers, len(list_of_urls))
 counter = 0
@@ -228,7 +231,7 @@ def process_url_wrapper(url):
         print(f"URLs processed: {counter}", end='\r', flush=True)
         # Use end='\r' and flush=True to stay on the same line
 
-    process_url(url)
+    process_url(url, session)
 
 with ThreadPoolExecutor(max_workers=max_threads) as executor:
     for _ in executor.map(process_url_wrapper, list_of_urls):
