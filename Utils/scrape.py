@@ -247,4 +247,3 @@ def run_scraper(num_pages, num_workers):
     df = pd.read_csv(filename)
     print(f"\nTotal records: {len(house_details)}\n")
     print(df)
-run_scraper(1,10)
