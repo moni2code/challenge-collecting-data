@@ -8,12 +8,34 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
-
+# Marking start time for timing the script.
+start_time = time.time()
 # Global variables
 house_details = []
-scraped_urls = set()
+SCRAPED_URLS = set()
 raw_data = []
-
+ERROR_COUNT = 0
+URL_COUNT = 0
+COUNTER = 0
+selected_values = [
+    ("id", "id"),
+    ("locality", "property.location.locality"),
+    ("type", "property.location.type"),
+    ("subtype", "property.subtype"),
+    ("mainValue", "price.mainValue"),
+    ("type_of_sale", "price.type"),
+    ("bedroomCount", "property.bedroomCount"),
+    ("netHabitableSurface", "property.netHabitableSurface"),
+    ("kitchen_type", "property.kitchen.type"),
+    ("isFurnished", "transaction.sale.isFurnished"),
+    ("fireplaceExists", "property.fireplaceExists"),
+    ("hasTerrace", "property.hasTerrace"),
+    ("hasGarden", "property.hasGarden"),
+    ("surface", "property.land.surface"),
+    ("facadeCount", "property.building.facadeCount"),
+    ("hasSwimmingPool", "property.hasSwimmingPool"),
+    ("condition", "property.building.condition")
+]
 #Start a Sesson as session
 session = requests.Session()
 
@@ -54,6 +76,7 @@ def get_urls(num_pages, session):
         list: A list of property URLs.
     """
     list_all_urls = []
+    global URL_COUNT  # Add the global variable for URL count
     for i in range(1, num_pages + 1):
         root_url = f"https://www.immoweb.be/en/search/house-and-apartment/for-sale?countries=BE&page={i}&orderBy=relevance"
         req = session.get(root_url)
@@ -62,31 +85,15 @@ def get_urls(num_pages, session):
         if req.status_code == 200:
             # Find all property URLs on the page and add them to the list
             list_all_urls.extend(tag.get("href") for tag in soup.find_all("a", attrs={"class": "card__title-link"}))
+            print(f'Urls found: {len(list_all_urls)}', end='\r', flush=True)
+            URL_COUNT = len(list_all_urls)
         else:
             print("Page not found")
             break
-    print(f"Number of houses: {len(list_all_urls)}")
+    print(f"Number of properties: {len(list_all_urls)}")
     return list_all_urls
 
-selected_values = [
-    ("id", "id"),
-    ("locality", "property.location.locality"),
-    ("type", "property.location.type"),
-    ("subtype", "property.subtype"),
-    ("mainValue", "price.mainValue"),
-    ("type_of_sale", "price.type"),
-    ("bedroomCount", "property.bedroomCount"),
-    ("netHabitableSurface", "property.netHabitableSurface"),
-    ("kitchen_type", "property.kitchen.type"),
-    ("isFurnished", "transaction.sale.isFurnished"),
-    ("fireplaceExists", "property.fireplaceExists"),
-    ("hasTerrace", "property.hasTerrace"),
-    ("hasGarden", "property.hasGarden"),
-    ("surface", "property.land.surface"),
-    ("facadeCount", "property.building.facadeCount"),
-    ("hasSwimmingPool", "property.hasSwimmingPool"),
-    ("condition", "property.building.condition")
-]
+
 
 def save_raw_data(version):
     """
@@ -129,6 +136,7 @@ def get_latest_version(file_prefix):
     Returns:
         int: The latest version number.
     """
+    os.makedirs("data/filtered_data", exist_ok=True)
     version = 0  # Initialize version as 0
     for filename in os.listdir("data/filtered_data"):
         if filename.startswith(file_prefix) and filename.endswith(".csv"):
@@ -149,9 +157,9 @@ def load_data():
     version = latest_version + 1 if latest_version > 0 else 1
     filename = f"data/filtered_data/house_details_v{version}.csv"
     if latest_version > 0:
-        print(f"Existing data found for version {latest_version}.")
+        print(f"Existing data found: version {latest_version}.")
     else:
-        print(f"No existing data found for version {latest_version}.")
+        print(f"No existing data found.")
         print(f"Creating a new version {version} CSV file.")
         os.makedirs("data/filtered_data", exist_ok=True)
         with open(filename, 'w') as file:
@@ -167,14 +175,14 @@ def process_url(url, session):
     Args:
         url (str): The URL of the property.
     """
-    
+    global ERROR_COUNT, URL_COUNT
     if any(record.get("id") == url for record in house_details):
         # Skip if URL already processed
         print(f"Skipping URL: {url}")
         return
     house_dict, raw_json_data = get_property(url, session)
-    global scraped_urls
-    if url in scraped_urls:
+    global SCRAPED_URLS
+    if url in SCRAPED_URLS:
         # Skip if URL already processed
         print(f"Skipping URL: {url}")
         return
@@ -200,6 +208,8 @@ def process_url(url, session):
         house_details.append(filtered_house_dict)
         raw_data.append({"url": url, "json_data": raw_json_data})
     else:
+        # Increment error count
+        ERROR_COUNT += 1
         # Sleep for 3 seconds if property details couldn't be fetched
         time.sleep(3)
 
@@ -225,10 +235,10 @@ def process_url_wrapper(url):
     Args:
         url (str): The URL of the property.
     """
-    global counter
+    global COUNTER, URL_COUNT, ERROR_COUNT, SCRAPED_URLS
     with counter_lock:
-        counter += 1
-        print(f"URLs processed: {counter}", end='\r', flush=True)
+        COUNTER += 1
+        print(f"URLs processed: {COUNTER}", end='\r', flush=True)
         # Use end='\r' and flush=True to stay on the same line
 
     process_url(url, session)
@@ -236,11 +246,15 @@ def process_url_wrapper(url):
 with ThreadPoolExecutor(max_workers=max_threads) as executor:
     for _ in executor.map(process_url_wrapper, list_of_urls):
         pass
-
+# Calculate and print the elapsed time
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"Script finished in {elapsed_time:.2f} seconds.")
 # Save the final data and raw data
+print(f"\nTotal URLs processed: {COUNTER}, Total URLs found: {URL_COUNT}, Total errors: {ERROR_COUNT}\n")
 save_data(version)
 save_raw_data(version)
 filename = f"data/filtered_data/house_details_v{version}.csv"
 df = pd.read_csv(filename)
-print(f"\nTotal records: {len(house_details)}")
+print(f"\nTotal records: {len(house_details)}\n")
 print(df)

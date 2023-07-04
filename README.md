@@ -10,17 +10,16 @@ This is a web scraping project which is made for collecting information about a 
 ## Installation
 To use this web-scraping project, you need to meet the following requirements:
 * Minimum Python 3.9 version installed on your system.
-* Install required libraries using pip such as Requests, Pandas, Numpy and Beautifulsoup4.
+* Install required libraries listed in the requirements.txt file in the repo main branch.
   
   
 ## Usage
 * Clone the project repository from GitHub [link]( https://github.com/Sam-Veldeman/challenge-collecting-data).
-* Open a terminal or command prompt and navigate to the project directory "challenge-collecting-data", there you should see scraper.py file .
-* Now, Run the following command to start the scraping (python3 scraper.py) and input the number of pages(60 listings per page), you want to scrape.
-* Execute the scraper.py script to initiate the web scraping process. The scraped data will be collected and stored in house_details.csv file.
-* Once the scraping process is complete, you can access the gathered data from the directory named data in house_details.csv file.
-
-
+* Open a terminal or command prompt and navigate to the project directory "challenge-collecting-data", there you should see main.py file .
+* Now, Run the following command to start the scraping (python3 scraper.py) and input the number of pages(60 listings per page) you 
+  want to scrape and the number of workers u like to use for concurency. (no input will use std 10 workers)
+* Execute the main.py script to initiate the web scraping process. The filtered scraped data will be collected and stored in
+  data/filtered_data/house_details_(version number).csv file. The raw data will be stored in the /data/scrapes/scrape_(version number).csv file. The version numbers depends on what version numbers are allready present in the folders.
 
 ### Contributors
 This project is done by Sam Veldeman,Wouter Daneels and Monisha Hitang learners of AI Bootcamp at Becode.org and assisted by the coaches Vanessa Rivera Quinones and Samuel Borms. 
