@@ -17,6 +17,7 @@ raw_data = []
 ERROR_COUNT = 0
 URL_COUNT = 0
 COUNTER = 0
+COUNTER_LOCK = Lock()
 selected_values = [
     ("id", "id"),
     ("locality", "property.location.locality"),
@@ -212,22 +213,6 @@ def process_url(url, session):
         ERROR_COUNT += 1
         # Sleep for 3 seconds if property details couldn't be fetched
         time.sleep(3)
-
-# Prompt for the number of pages to scrape
-num_pages = int(input("Enter the number of pages to scrape: "))
-
-# Prompt for the number of workers
-num_workers_input = input("Enter the number of workers (default is 10): ")
-num_workers = int(num_workers_input) if num_workers_input else 10
-
-# Check if previous scraped data exists
-version = load_data()  # Load previously scraped data
-list_of_urls = get_urls(num_pages, session)
-
-max_threads = min(num_workers, len(list_of_urls))
-counter = 0
-counter_lock = Lock()
-
 def process_url_wrapper(url):
     """
     Wrapper function for processing a property URL.
@@ -235,26 +220,31 @@ def process_url_wrapper(url):
     Args:
         url (str): The URL of the property.
     """
-    global COUNTER, URL_COUNT, ERROR_COUNT, SCRAPED_URLS
-    with counter_lock:
+    global COUNTER, URL_COUNT, ERROR_COUNT, SCRAPED_URLS, COUNTER_LOCK
+    with COUNTER_LOCK:
         COUNTER += 1
         print(f"URLs processed: {COUNTER}", end='\r', flush=True)
         # Use end='\r' and flush=True to stay on the same line
 
     process_url(url, session)
-
-with ThreadPoolExecutor(max_workers=max_threads) as executor:
-    for _ in executor.map(process_url_wrapper, list_of_urls):
-        pass
-# Calculate and print the elapsed time
-end_time = time.time()
-elapsed_time = end_time - start_time
-print(f"Script finished in {elapsed_time:.2f} seconds.")
-# Save the final data and raw data
-print(f"\nTotal URLs processed: {COUNTER}, Total URLs found: {URL_COUNT}, Total errors: {ERROR_COUNT}\n")
-save_data(version)
-save_raw_data(version)
-filename = f"data/filtered_data/house_details_v{version}.csv"
-df = pd.read_csv(filename)
-print(f"\nTotal records: {len(house_details)}\n")
-print(df)
+def run_scraper(num_pages, num_workers):
+    # Check if previous scraped data exists
+    version = load_data()  # Load previously scraped data
+    list_of_urls = get_urls(num_pages, session)
+    max_threads = min(num_workers, len(list_of_urls))
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        for _ in executor.map(process_url_wrapper, list_of_urls):
+            pass
+    # Calculate and print the elapsed time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Script finished in {elapsed_time:.2f} seconds.")
+    # Save the final data and raw data
+    print(f"\nTotal URLs processed: {COUNTER}, Total URLs found: {URL_COUNT}, Total errors: {ERROR_COUNT}\n")
+    save_data(version)
+    save_raw_data(version)
+    filename = f"data/filtered_data/house_details_v{version}.csv"
+    df = pd.read_csv(filename)
+    print(f"\nTotal records: {len(house_details)}\n")
+    print(df)
+run_scraper(1,10)
