@@ -21,6 +21,11 @@ To use this web-scraping project, you need to meet the following requirements:
 * Execute the main.py script to initiate the web scraping process. The filtered scraped data will be collected and stored in
   data/filtered_data/house_details_(version number).csv file. The raw data will be stored in the /data/scrapes/scrape_(version number).csv file. The version numbers depends on what version numbers are allready present in the folders.
 
+## Update 06/07/2023
+* Added an async scraper, it is a bit faster than the original one.
+* Usage is the same as the original scraper, only this time use the async_main.py to start the scrape.
+* This scraper has no option to choose the amount of workers, since it is working asyncro.
+
 ### Contributors
 This project is done by Sam Veldeman,Wouter Daneels and Monisha Hitang learners of AI Bootcamp at Becode.org and assisted by the coaches Vanessa Rivera Quinones and Samuel Borms. 
 
