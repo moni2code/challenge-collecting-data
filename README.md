@@ -11,6 +11,12 @@ This is a web scraping project which is made for collecting information about a 
 To use this web-scraping project, you need to meet the following requirements:
 * Minimum Python 3.9 version installed on your system.
 * Install required libraries listed in the requirements.txt file in the repo main branch.
+  ### how to install requirements:
+  
+    Open up a terminal or a command prompt and navigate to the directory of your Python project.
+    Once you are there, type the following command:
+
+    pip install -r requirements.txt
   
   
 ## Usage
