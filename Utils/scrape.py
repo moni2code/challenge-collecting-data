@@ -18,24 +18,37 @@ ERROR_COUNT = 0
 URL_COUNT = 0
 COUNTER = 0
 COUNTER_LOCK = Lock()
+# Acts as filter for the dictionary, we can add or remove (un)wanted data from the filtered dictionary
 selected_values = [
     ("id", "id"),
-    ("locality", "property.location.locality"),
-    ("type", "property.location.type"),
-    ("subtype", "property.subtype"),
-    ("mainValue", "price.mainValue"),
-    ("type_of_sale", "price.type"),
-    ("bedroomCount", "property.bedroomCount"),
-    ("netHabitableSurface", "property.netHabitableSurface"),
-    ("kitchen_type", "property.kitchen.type"),
-    ("isFurnished", "transaction.sale.isFurnished"),
-    ("fireplaceExists", "property.fireplaceExists"),
-    ("hasTerrace", "property.hasTerrace"),
-    ("hasGarden", "property.hasGarden"),
-    ("surface", "property.land.surface"),
-    ("facadeCount", "property.building.facadeCount"),
-    ("hasSwimmingPool", "property.hasSwimmingPool"),
-    ("condition", "property.building.condition")
+    ("Street", "property.location.street"),
+    ("Housenumber", "property.location.number"),
+    ("Box", "property.location.box"),
+    ("Floor", "property.location.floor"),
+    ("City", "property.location.locality"),
+    ("Postalcode", "property.location.postalCode"),
+    ("Property type", "property.location.type"),
+    ("Region", "property.location.regionCode"),
+    ("District", "property.location.district"),
+    ("Subtype", "property.subtype"),
+    ("Price", "price.mainValue"),
+    ("Type of sale", "price.type"),
+    ("Construction year", "property.building.constructionYear"),
+    ("Bedroom Count", "property.bedroomCount"),
+    ("Habitable surface", "property.netHabitableSurface"),
+    ("Kitchen type", "property.kitchen.type"),
+    ("Furnished", "transaction.sale.isFurnished"),
+    ("Fireplace", "property.fireplaceExists"),
+    ("Terrace", "property.hasTerrace"),
+    ("Garden", "property.hasGarden"),
+    ("Garden surface", "property.land.surface"),
+    ("Facades", "property.building.facadeCount"),
+    ("SwimmingPool", "property.hasSwimmingPool"),
+    ("Condition", "property.building.condition"),
+    ("EPC score", "transaction.certificates.epcScore"),
+    ("Latitude", "property.location.latitude"),
+    ("Longitude", "property.location.longitude")
+    
 ]
 #Start a Sesson as session
 session = requests.Session()
@@ -54,13 +67,13 @@ def get_property(url, session):
     try:
         response = session.get(url)
         html_content = response.text
-        start_marker = "window.classified = "
-        end_marker = ";\n"
-        start_index = html_content.find(start_marker) + len(start_marker)
+        start_marker = "window.classified = " #create variable for cutting the content string at the start of the dictionary
+        end_marker = ";\n"                    #create variable for cutting off the end of the string
+        start_index = html_content.find(start_marker) + len(start_marker) 
         end_index = html_content.find(end_marker, start_index)
-        if start_index != -1 and end_index != -1:
-            json_data = html_content[start_index:end_index]
-            house_dict = json.loads(json_data)
+        if start_index != -1 and end_index != -1: #check if we are not out of bounds with the string
+            json_data = html_content[start_index:end_index] #create the dictionary from the resulting string {}
+            house_dict = json.loads(json_data) #seperate dict for the filtered result
             return house_dict, json_data
     except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
         print(f"Error occurred during scraping: {e}")
@@ -120,7 +133,6 @@ def save_data(version):
     house_details_df = pd.DataFrame(house_details)
     if not house_details_df.empty:
         house_details_df.replace({np.nan: 0, None: 0}, inplace=True)
-        house_details_df = house_details_df.astype(int, errors='ignore')
         os.makedirs("data/filtered_data", exist_ok=True)
         house_details_df.to_csv(filename, index=False)
         print(f"Data saved to {filename}")
@@ -198,10 +210,6 @@ def process_url(url, session):
                 else:
                     value = None
                     break
-            if isinstance(value, bool):
-                value = int(value)
-            if isinstance(value, float):
-                value = int(value)
             filtered_house_dict[new_key] = value
         id_match = re.search(r"/(\d+)$", url)
         if id_match:
@@ -242,8 +250,5 @@ def run_scraper(num_pages, num_workers):
     # Save the final data and raw data
     print(f"\nTotal URLs processed: {COUNTER}, Total URLs found: {URL_COUNT}, Total errors: {ERROR_COUNT}\n")
     save_data(version)
-    save_raw_data(version)
-    filename = f"data/filtered_data/house_details_v{version}.csv"
-    df = pd.read_csv(filename)
+    #save_raw_data(version)
     print(f"\nTotal records: {len(house_details)}\n")
-    print(df)
