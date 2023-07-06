@@ -17,9 +17,15 @@ COUNTER_LOCK = asyncio.Lock()
 
 selected_values = [
     ("id", "id"),
-    ("Stad", "property.location.locality"),
+    ("Street", "property.location.street"),
+    ("Housenumber", "property.location.number"),
+    ("Box", "property.location.box"),
+    ("Floor", "property.location.floor"),
+    ("City", "property.location.locality"),
+    ("Postalcode", "property.location.postalCode"),
     ("Property type", "property.location.type"),
     ("Region", "property.location.regionCode"),
+    ("District", "property.location.district"),
     ("Subtype", "property.subtype"),
     ("Price", "price.mainValue"),
     ("Type of sale", "price.type"),
@@ -35,7 +41,10 @@ selected_values = [
     ("Facades", "property.building.facadeCount"),
     ("SwimmingPool", "property.hasSwimmingPool"),
     ("Condition", "property.building.condition"),
-    ("EPC score", "transaction.certificates.epcScore")
+    ("EPC score", "transaction.certificates.epcScore"),
+    ("Latitude", "property.location.latitude"),
+    ("Longitude", "property.location.longitude")
+    
 ]
 
 async def get_property(session, url):
