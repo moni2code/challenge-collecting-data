@@ -2,7 +2,4 @@
 **/myenv1/**
 /Testbook.ipynb
 /data/**
-/Utils/async_scrape.py
-async_main.py
-/Utils/__pychache__/**
-Utils\__pycache__/**
+__pycache__/
