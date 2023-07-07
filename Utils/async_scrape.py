@@ -61,17 +61,17 @@ async def get_property(session, url):
     try:
         async with session.get(url) as response:
             html_content = await response.text()
-            start_marker = "window.classified = "
-            end_marker = ";\n"
-            start_index = html_content.find(start_marker) + len(start_marker)
+            start_marker = "window.classified = " #create variable for cutting the content string at the start of the dictionary
+            end_marker = ";\n"                    #create variable for cutting off the end of the string
+            start_index = html_content.find(start_marker) + len(start_marker) 
             end_index = html_content.find(end_marker, start_index)
-            if start_index != -1 and end_index != -1:
-                json_data = html_content[start_index:end_index]
-                house_dict = json.loads(json_data)
-                return house_dict
+            if start_index != -1 and end_index != -1: #check if we are not out of bounds with the string
+                json_data = html_content[start_index:end_index] #create the dictionary from the resulting string {}
+                house_dict = json.loads(json_data) #seperate dict for the filtered result
+                return house_dict, json_data
     except (aiohttp.ClientError, json.JSONDecodeError) as e:
         print(f"Error occurred during scraping: {e}")
-    return None
+    return None, None
 
 async def get_urls(num_pages, session):
     """
@@ -85,7 +85,7 @@ async def get_urls(num_pages, session):
         list: A list of property URLs.
     """
     list_all_urls = []
-    global URL_COUNT
+    global URL_COUNT # Add the global variable for URL count
     for i in range(1, num_pages + 1):
         root_url = f"https://www.immoweb.be/en/search/house-and-apartment/for-sale?countries=BE&page={i}&orderBy=relevance"
         async with session.get(root_url) as response:
@@ -127,7 +127,6 @@ async def save_data(version):
     house_details_df = pd.DataFrame(house_details)
     if not house_details_df.empty:
         house_details_df.replace({np.nan: 0, None: 0}, inplace=True)
-        house_details_df = house_details_df.astype(int, errors='ignore')
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         house_details_df.to_csv(filename, index=False)
         print(f"Data saved to {filename}")
@@ -167,7 +166,7 @@ def load_data():
     root_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
     filename = os.path.join(root_folder, f"data/filtered_data/house_details_v{version}.csv")
     if latest_version > 0:
-        print(f"Existing data found: version {latest_version}. New version {version} will be created.")
+        print(f"Existing data found: version {latest_version}.\nNew version {version} will be created.")
     else:
         print(f"No existing data found.")
         print(f"Creating a new version {version} CSV file.")
@@ -187,8 +186,10 @@ async def process_url(url, session):
     global SCRAPED_URLS, COUNTER_LOCK, ERROR_COUNT
     if url in SCRAPED_URLS:
         return
-    house_dict = await get_property(session, url)
+    house_dict, raw_json_data = await get_property(session, url)
     if url in SCRAPED_URLS:
+        # Skip if URL already processed
+        print(f"Skipping URL: {url}")
         return
     if house_dict:
         filtered_house_dict = {}
@@ -201,18 +202,16 @@ async def process_url(url, session):
                 else:
                     value = None
                     break
-            if isinstance(value, bool):
-                value = int(value)
-            if isinstance(value, float):
-                value = int(value)
             filtered_house_dict[new_key] = value
         id_match = re.search(r"/(\d+)$", url)
         if id_match:
             filtered_house_dict["id"] = int(id_match.group(1))
         house_details.append(filtered_house_dict)
-        raw_data.append({"url": url, "json_data": json.dumps(house_dict)})
+        raw_data.append({"json_data": raw_json_data})
     else:
+        # Increment error count
         ERROR_COUNT += 1
+        # Sleep for 3 seconds if property details couldn't be fetched
         await asyncio.sleep(3)
 
 async def process_url_wrapper(url, session):
