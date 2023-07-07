@@ -1,1 +1,5 @@
-myenv/
+**/.venv/**
+**/myenv1/**
+Testbook.ipynb
+data/
+__pycache__/
